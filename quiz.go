@@ -6,7 +6,34 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 )
+
+type Problem struct {
+	q string
+	a string
+}
+
+func quizTheUser(problem Problem) bool {
+	// Print the question
+	fmt.Print(problem.q, " ")
+
+	// Get the answer from user
+	var answer string
+	fmt.Scanf("%s\n", &answer)
+
+	// Validate the answer
+	if answer == problem.a {
+		return true
+	} else {
+		return false
+	}
+}
+
+func exit(msg string) {
+	fmt.Println(msg)
+	os.Exit(1)
+}
 
 func main() {
 
@@ -19,8 +46,7 @@ func main() {
 	// Read the input file
 	inputFile, err := os.Open(*inputFileName)
 	if err != nil {
-		fmt.Println("Unable to read input file")
-		os.Exit(1)
+		exit("Unable to read input file")
 	}
 
 	// Close the file while exiting this function
@@ -29,7 +55,7 @@ func main() {
 	// Result variables
 	correctAnswers, totalQuestions := 0, 0
 
-	// Read the csv records
+	// Read the csv records one by one
 	csvReader := csv.NewReader(inputFile)
 	for {
 		record, err := csvReader.Read()
@@ -39,21 +65,20 @@ func main() {
 		}
 		// All other errors
 		if err != nil {
-			fmt.Println("Error file parsing input file: " + err.Error())
 			inputFile.Close()
-			os.Exit(1)
+			exit("Error file parsing input file: " + err.Error())
 		}
 
-		// Print the question
-		fmt.Print(record[0], " ")
 		totalQuestions++
 
-		// Get the answer from user
-		var answer string
-		fmt.Scanln(&answer)
+		// Convert the input to Problem type
+		newProblem := Problem{
+			q: record[0],
+			a: strings.TrimSpace(record[1]),
+		}
 
 		// Check the answer
-		if answer == record[1] {
+		if quizTheUser(newProblem) {
 			correctAnswers++
 		}
 	}

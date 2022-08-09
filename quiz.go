@@ -2,14 +2,22 @@ package main
 
 import (
 	"encoding/csv"
+	"flag"
 	"fmt"
 	"io"
 	"os"
 )
 
 func main() {
+
+	// Define input file flag
+	inputFileName := flag.String("file", "problems.csv", "Name of the input file. File should be present in the current folder.")
+
+	// Parse the flags
+	flag.Parse()
+
 	// Read the input file
-	inputFile, err := os.Open("./problems.csv")
+	inputFile, err := os.Open(*inputFileName)
 	if err != nil {
 		fmt.Println("Unable to read input file")
 		os.Exit(1)
@@ -19,7 +27,7 @@ func main() {
 	defer inputFile.Close()
 
 	// Result variables
-	correctAnswers,totalQuestions := 0,0 
+	correctAnswers, totalQuestions := 0, 0
 
 	// Read the csv records
 	csvReader := csv.NewReader(inputFile)
@@ -31,13 +39,13 @@ func main() {
 		}
 		// All other errors
 		if err != nil {
-			fmt.Println("Error file parsing input file: "+err.Error())
+			fmt.Println("Error file parsing input file: " + err.Error())
 			inputFile.Close()
 			os.Exit(1)
 		}
 
 		// Print the question
-		fmt.Print(record[0]," ")
+		fmt.Print(record[0], " ")
 		totalQuestions++
 
 		// Get the answer from user
@@ -45,10 +53,10 @@ func main() {
 		fmt.Scanln(&answer)
 
 		// Check the answer
-		if answer==record[1] {
+		if answer == record[1] {
 			correctAnswers++
 		}
 	}
 
-	fmt.Printf("%d out of %d questions correct\n",correctAnswers,totalQuestions)
+	fmt.Printf("%d out of %d questions correct\n", correctAnswers, totalQuestions)
 }

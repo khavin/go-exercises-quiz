@@ -4,9 +4,9 @@ import (
 	"encoding/csv"
 	"flag"
 	"fmt"
-	"io"
 	"os"
 	"strings"
+	"time"
 )
 
 type Problem struct {
@@ -30,6 +30,19 @@ func quizTheUser(problem Problem) bool {
 	}
 }
 
+func convertCSVToProblems(records [][]string) []Problem {
+	problems := make([]Problem, len(records))
+
+	for i := range records {
+		problems[i] = Problem{
+			q: records[i][0],
+			a: strings.TrimSpace(records[i][1]),
+		}
+	}
+
+	return problems
+}
+
 func exit(msg string) {
 	fmt.Println(msg)
 	os.Exit(1)
@@ -37,8 +50,9 @@ func exit(msg string) {
 
 func main() {
 
-	// Define input file flag
+	// Define the flags
 	inputFileName := flag.String("file", "problems.csv", "Name of the input file. File should be present in the current folder.")
+	timeout := flag.Int("timeout", 30, "Quiz timeout period.")
 
 	// Parse the flags
 	flag.Parse()
@@ -52,34 +66,48 @@ func main() {
 	// Close the file while exiting this function
 	defer inputFile.Close()
 
-	// Result variables
-	correctAnswers, totalQuestions := 0, 0
-
-	// Read the csv records one by one
+	// Read the csv records all at once
 	csvReader := csv.NewReader(inputFile)
-	for {
-		record, err := csvReader.Read()
-		// Handle EOF error
-		if err == io.EOF {
+	records, err := csvReader.ReadAll()
+
+	if err != nil {
+		inputFile.Close()
+		exit("Error file parsing input file: " + err.Error())
+	}
+
+	// Result variables
+	correctAnswers, totalQuestions := 0, len(records)
+
+	// Convert the input records to Problem type
+	problems := convertCSVToProblems(records)
+
+	// Set a timer
+	timer := time.NewTimer(time.Duration(*timeout) * time.Second)
+	timedOut := false
+
+	for i := range problems {
+
+		// This channel will be used to receive the problem result
+		userChannel := make(chan bool)
+
+		// Quiz the user
+		go func() {
+			userChannel <- quizTheUser(problems[i])
+		}()
+
+		// Wait until either the timer ends or the user responds
+		select {
+		case result := <-userChannel:
+			if result {
+				correctAnswers++
+			}
+		case <-timer.C:
+			fmt.Println()
+			timedOut = true
+		}
+
+		if timedOut {
 			break
-		}
-		// All other errors
-		if err != nil {
-			inputFile.Close()
-			exit("Error file parsing input file: " + err.Error())
-		}
-
-		totalQuestions++
-
-		// Convert the input to Problem type
-		newProblem := Problem{
-			q: record[0],
-			a: strings.TrimSpace(record[1]),
-		}
-
-		// Check the answer
-		if quizTheUser(newProblem) {
-			correctAnswers++
 		}
 	}
 
